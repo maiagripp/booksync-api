@@ -135,6 +135,12 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+# Ignore o ambiente virtual na pasta booksync-api
+booksync-api/bin/
+booksync-api/lib/
+booksync-api/lib64/
+booksync-api/include/
+booksync-api/pyvenv.cfg
 
 # Spyder project settings
 .spyderproject

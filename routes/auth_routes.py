@@ -1,22 +1,134 @@
-from flask import Blueprint, request, jsonify
+# routes/book_routes.py
+
+from flask_openapi3 import APIBlueprint, Tag
+from flask_jwt_extended import jwt_required, get_jwt_identity
+
 from database import db
-from models.user import User
+from services.google_books import get_book_by_id, search_google_books
+from models.book import Book
+from models.user_book import UserBook
+from schemas.book_schemas import PathGoogleID, ReviewInput, StatusInput, SearchQuery
 
-auth_bp = Blueprint("auth", __name__)
+# Define a Tag para agrupar estas rotas no Swagger UI
+books_tag = Tag(name="Livros", description="Operações relacionadas a livros e reviews de utilizadores")
 
-@auth_bp.route("/api/register", methods=["POST"])
-def register():
-    data = request.get_json()
+# Cria o Blueprint
+book_bp = APIBlueprint('books', __name__, url_prefix='/api/user/books', abp_tags=[books_tag])
 
-    if not data.get("email") or not data.get("password"):
-        return {"message": "Dados incompletos"}, 400
 
-    if User.query.filter_by(email=data["email"]).first():
-        return {"message": "Usuário já existe"}, 409
+@book_bp.get("/search")
+@jwt_required()
+def search_books(query: SearchQuery):
+    """Busca livros na API do Google Books."""
+    # A sua lógica de negócio aqui não precisa de alterações.
+    books = search_google_books(query.query)
+    return books, 200
 
-    user = User(email=data["email"])
-    user.set_password(data["password"])
-    db.session.add(user)
+
+@book_bp.post("/{google_id}")
+@jwt_required()
+def add_user_book(path: PathGoogleID, body: ReviewInput):
+    """Adiciona um novo livro e review para o utilizador."""
+    # A sua lógica de negócio aqui não precisa de alterações.
+    google_id = path.google_id
+    user_id = int(get_jwt_identity())
+
+    if body.status not in ["lendo", "lido"]:
+        return {"message": "Status inválido"}, 400
+
+    book = Book.query.filter_by(google_id=google_id).first()
+    if not book:
+        book_data = get_book_by_id(google_id)
+        if not book_data or 'volumeInfo' not in book_data:
+             return {"message": "Livro não encontrado na Google Books API"}, 404
+        
+        info = book_data['volumeInfo']
+        title = info.get("title", "Título desconhecido")
+        authors = info.get("authors", ["Autor desconhecido"])
+        author = ", ".join(authors)
+        
+        book = Book(google_id=google_id, title=title, author=author)
+        db.session.add(book)
+        db.session.commit()
+
+    existing_user_book = UserBook.query.filter_by(user_id=user_id, book_id=book.id).first()
+    if existing_user_book:
+        return {"message": "Você já adicionou este livro. Use a rota PUT para atualizá-lo."}, 409
+    
+    user_book = UserBook(user_id=user_id, book_id=book.id, rating=body.rating, comment=body.comment, status=body.status)
+    db.session.add(user_book)
     db.session.commit()
 
-    return {"message": "Usuário criado com sucesso"}, 201
+    return {"message": "Livro avaliado com sucesso"}, 201
+
+
+@book_bp.put("/{google_id}")
+@jwt_required()
+def update_or_create_user_book(path: PathGoogleID, body: ReviewInput):
+    """Atualiza uma review existente ou cria uma nova se não existir."""
+    # A sua lógica de negócio aqui não precisa de alterações.
+    google_id = path.google_id
+    user_id = int(get_jwt_identity())
+    user_book = UserBook.query.join(Book).filter(Book.google_id == google_id, UserBook.user_id == user_id).first()
+    
+    if not user_book:
+        book = Book.query.filter_by(google_id=google_id).first()
+        if not book:
+            book_data = get_book_by_id(google_id)
+            if not book_data or 'volumeInfo' not in book_data:
+                return {"message": "Livro não encontrado na Google Books API"}, 404
+            
+            info = book_data['volumeInfo']
+            title = info.get("title", "Título desconhecido")
+            authors = info.get("authors", ["Autor desconhecido"])
+            author = ", ".join(authors)
+            
+            book = Book(google_id=google_id, title=title, author=author)
+            db.session.add(book)
+            db.session.commit()
+
+        user_book = UserBook(user_id=user_id, book_id=book.id, rating=body.rating, comment=body.comment, status=body.status)
+        db.session.add(user_book)
+        db.session.commit()
+        return {"message": "Review criada com sucesso"}, 201
+        
+    user_book.rating = body.rating
+    user_book.comment = body.comment
+    user_book.status = body.status
+    db.session.commit()
+    return {"message": "Review atualizada com sucesso"}, 200
+
+
+@book_bp.delete("/{google_id}")
+@jwt_required()
+def delete_user_book(path: PathGoogleID):
+    """Deleta a review de um livro para o utilizador."""
+    # A sua lógica de negócio aqui não precisa de alterações.
+    google_id = path.google_id
+    user_id = int(get_jwt_identity())
+    user_book = UserBook.query.join(Book).filter(Book.google_id == google_id, UserBook.user_id == user_id).first()
+    if not user_book:
+        return {"message": "Review não encontrada"}, 404
+        
+    db.session.delete(user_book)
+    db.session.commit()
+    return {"message": "Review removida com sucesso"}, 200
+
+
+@book_bp.patch("/{google_id}/status")
+@jwt_required()
+def update_book_status(path: PathGoogleID, body: StatusInput):
+    """Atualiza apenas o status de um livro (lido/lendo)."""
+    # A sua lógica de negócio aqui não precisa de alterações.
+    google_id = path.google_id
+    if body.status not in ["lido", "lendo"]:
+        return {"message": "Status inválido"}, 400
+        
+    user_id = int(get_jwt_identity())
+    user_book = UserBook.query.join(Book).filter(Book.google_id == google_id, UserBook.user_id == user_id).first()
+    if not user_book:
+        return {"message": "Review não encontrada"}, 404
+        
+    user_book.status = body.status
+    db.session.commit()
+    return {"message": f"Status atualizado para {body.status}"}, 200

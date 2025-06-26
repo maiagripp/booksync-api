@@ -1,0 +1,70 @@
+### REGISTRO DE USUÁRIO
+POST http://localhost:5000/api/register
+Content-Type: application/json
+
+{
+  "email": "claudia@example.com",
+  "password": "123456"
+}
+
+###
+
+### LOGIN
+POST http://localhost:5000/api/login
+Content-Type: application/json
+
+{
+  "email": "claudia@example.com",
+  "password": "123456"
+}
+
+# Copie o access_token retornado e substitua na linha Authorization abaixo
+
+###
+
+### BUSCAR LIVROS NA API DO GOOGLE BOOKS
+GET http://localhost:5000/api/user/books/search?query=grandes+esperancas
+Authorization: Bearer {{JWT_TOKEN}}
+
+###
+
+### ADICIONAR LIVRO COM REVIEW
+POST http://localhost:5000/api/user/books/0CgREQAAQBAJ
+Content-Type: application/json
+Authorization: Bearer {{JWT_TOKEN}}
+
+{
+  "rating": 5,
+  "comment": "Excelente leitura, recomendo muito!",
+  "status": "lendo"
+}
+
+###
+
+### ATUALIZAR REVIEW DE UM LIVRO (PUT)
+PUT http://localhost:5000/api/user/books/0CgREQAAQBAJ
+Content-Type: application/json
+Authorization: Bearer {{JWT_TOKEN}}
+
+{
+  "rating": 4,
+  "comment": "Gostei muito, mas prefiro outros do Dickens",
+  "status": "lido"
+}
+
+###
+
+### ATUALIZAR SOMENTE O STATUS (PATCH)
+PATCH http://localhost:5000/api/user/books/0CgREQAAQBAJ/status
+Content-Type: application/json
+Authorization: Bearer {{JWT_TOKEN}}
+
+{
+  "status": "lido"
+}
+
+###
+
+### DELETAR UM LIVRO DO USUÁRIO
+DELETE http://localhost:5000/api/user/books/0CgREQAAQBAJ
+Authorization: Bearer {{JWT_TOKEN}}
