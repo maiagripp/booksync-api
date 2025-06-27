@@ -58,28 +58,27 @@ def add_user_book(google_id):
         type: string
         required: true
         description: ID do livro no Google Books
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - rating
-              - comment
-              - status
-            properties:
-              rating:
-                type: integer
-                format: int32
-                example: 5
-              comment:
-                type: string
-                example: Um clássico!
-              status:
-                type: string
-                enum: [lido, lendo]
-                example: lido
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - rating
+            - comment
+            - status
+          properties:
+            rating:
+              type: integer
+              format: int32
+              example: 5
+            comment:
+              type: string
+              example: Um clássico!
+            status:
+              type: string
+              enum: [lido, lendo]
+              example: lido
     responses:
       201:
         description: Avaliação criada com sucesso
@@ -144,28 +143,27 @@ def update_or_create_user_book(google_id):
         type: string
         required: true
         description: ID do livro no Google Books
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - rating
-              - comment
-              - status
-            properties:
-              rating:
-                type: integer
-                format: int32
-                example: 4
-              comment:
-                type: string
-                example: Na releitura, gostei ainda mais
-              status:
-                type: string
-                enum: [lido, lendo]
-                example: lendo
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - rating
+            - comment
+            - status
+          properties:
+            rating:
+              type: integer
+              format: int32
+              example: 5
+            comment:
+              type: string
+              example: Um clássico!
+            status:
+              type: string
+              enum: [lido, lendo]
+              example: lido
     responses:
       200:
         description: Avaliação atualizada com sucesso
@@ -263,19 +261,18 @@ def update_book_status(google_id):
         type: string
         required: true
         description: ID do livro no Google Books
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - status
-            properties:
-              status:
-                type: string
-                enum: [lido, lendo]
-                example: lido
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - status
+          properties:
+            status:
+              type: string
+              enum: [lido, lendo]
+              example: lido
     responses:
       200:
         description: Status atualizado com sucesso

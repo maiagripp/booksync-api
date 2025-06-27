@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flasgger import Swagger
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
@@ -17,10 +17,14 @@ def create_app():
     JWTManager(app)
     Swagger(app, template=app.config['SWAGGER_TEMPLATE'], config=app.config['SWAGGER_CONFIG'])
     with app.app_context():
-        db.create_all()  # Cria as tabelas no banco de dados
+        db.create_all()  
 
     app.register_blueprint(book_bp)
     app.register_blueprint(auth_bp)
+
+    @app.route("/")
+    def home():
+        return jsonify({"message": "BookSync API está rodando!"})
 
     return app
 

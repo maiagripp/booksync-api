@@ -23,6 +23,7 @@ O backend é feito em Python com Flask, Flask-SQLAlchemy para o ORM, e integraç
 - Flask-JWT-Extended
 - Flask-CORS
 - Requests (para integração com Google Books)
+- SQLite (banco de dados local)
 
 ---
 
@@ -63,6 +64,8 @@ flask --app app run
 
 O backend estará disponível em `http://localhost:5000`.
 
+A documentação Swagger estará disponível em: `http://localhost:5000/apidocs/`
+
 ---
 
 ## Estrutura do projeto
@@ -73,6 +76,7 @@ O backend estará disponível em `http://localhost:5000`.
 /database.py          # inicialização do banco com SQLAlchemy
 /models/              # modelos de dados (User, Book, UserBook, etc)
 /routes/              # rotas agrupadas em Blueprints (auth, book, etc)
+/schemas/             # esquemas de validação com Pydantic
 /services/            # integração com Google Books e lógica de negócio
 /requirements.txt     # dependências do projeto
 ```
@@ -89,5 +93,6 @@ O backend estará disponível em `http://localhost:5000`.
 
 ## Contato
 
-Claudia Maia — maiaandradec@gmail.com  
+Claudia Maia — [Email-me](mailto:maiaandradec@gmail.com)
+
 Projeto desenvolvido como MVP para pós-graduação em Engenharia de Software - Sprint Desenvolvimento FullStack Básico na PUC-Rio.
