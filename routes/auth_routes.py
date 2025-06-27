@@ -1,134 +1,104 @@
-# routes/book_routes.py
-
-from flask_openapi3 import APIBlueprint, Tag
-from flask_jwt_extended import jwt_required, get_jwt_identity
-
+from flask import Blueprint, request
+from flask_jwt_extended import create_access_token
 from database import db
-from services.google_books import get_book_by_id, search_google_books
-from models.book import Book
-from models.user_book import UserBook
-from schemas.book_schemas import PathGoogleID, ReviewInput, StatusInput, SearchQuery
+from models.user import User
 
-# Define a Tag para agrupar estas rotas no Swagger UI
-books_tag = Tag(name="Livros", description="Operações relacionadas a livros e reviews de utilizadores")
-
-# Cria o Blueprint
-book_bp = APIBlueprint('books', __name__, url_prefix='/api/user/books', abp_tags=[books_tag])
+auth_bp = Blueprint("auth", __name__, url_prefix="/api")
 
 
-@book_bp.get("/search")
-@jwt_required()
-def search_books(query: SearchQuery):
-    """Busca livros na API do Google Books."""
-    # A sua lógica de negócio aqui não precisa de alterações.
-    books = search_google_books(query.query)
-    return books, 200
+@auth_bp.route("/register", methods=["POST"])
+def register():
+    """
+    Registra novo usuário.
+    ---
+    tags:
+      - Autenticação
+    security: []
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - email
+            - password
+          properties:
+            email:
+              type: string
+              example: teste@example.com
+            password:
+              type: string
+              example: 123456
+    responses:
+      201:
+        description: Usuário registrado com sucesso
+      400:
+        description: Email já registrado ou dados inválidos
+    """
+    data = request.get_json()
+    email = data.get("email")
+    password = str(data.get("password"))
 
+    if not email or not password:
+        return {"message": "Email e senha são obrigatórios"}, 400
 
-@book_bp.post("/{google_id}")
-@jwt_required()
-def add_user_book(path: PathGoogleID, body: ReviewInput):
-    """Adiciona um novo livro e review para o utilizador."""
-    # A sua lógica de negócio aqui não precisa de alterações.
-    google_id = path.google_id
-    user_id = int(get_jwt_identity())
+    if User.query.filter_by(email=email).first():
+        return {"message": "Email já registrado"}, 400
 
-    if body.status not in ["lendo", "lido"]:
-        return {"message": "Status inválido"}, 400
-
-    book = Book.query.filter_by(google_id=google_id).first()
-    if not book:
-        book_data = get_book_by_id(google_id)
-        if not book_data or 'volumeInfo' not in book_data:
-             return {"message": "Livro não encontrado na Google Books API"}, 404
-        
-        info = book_data['volumeInfo']
-        title = info.get("title", "Título desconhecido")
-        authors = info.get("authors", ["Autor desconhecido"])
-        author = ", ".join(authors)
-        
-        book = Book(google_id=google_id, title=title, author=author)
-        db.session.add(book)
-        db.session.commit()
-
-    existing_user_book = UserBook.query.filter_by(user_id=user_id, book_id=book.id).first()
-    if existing_user_book:
-        return {"message": "Você já adicionou este livro. Use a rota PUT para atualizá-lo."}, 409
-    
-    user_book = UserBook(user_id=user_id, book_id=book.id, rating=body.rating, comment=body.comment, status=body.status)
-    db.session.add(user_book)
+    user = User(email=email)
+    user.set_password(password)
+    db.session.add(user)
     db.session.commit()
 
-    return {"message": "Livro avaliado com sucesso"}, 201
+    return {"message": "Usuário registrado com sucesso"}, 201
 
 
-@book_bp.put("/{google_id}")
-@jwt_required()
-def update_or_create_user_book(path: PathGoogleID, body: ReviewInput):
-    """Atualiza uma review existente ou cria uma nova se não existir."""
-    # A sua lógica de negócio aqui não precisa de alterações.
-    google_id = path.google_id
-    user_id = int(get_jwt_identity())
-    user_book = UserBook.query.join(Book).filter(Book.google_id == google_id, UserBook.user_id == user_id).first()
-    
-    if not user_book:
-        book = Book.query.filter_by(google_id=google_id).first()
-        if not book:
-            book_data = get_book_by_id(google_id)
-            if not book_data or 'volumeInfo' not in book_data:
-                return {"message": "Livro não encontrado na Google Books API"}, 404
-            
-            info = book_data['volumeInfo']
-            title = info.get("title", "Título desconhecido")
-            authors = info.get("authors", ["Autor desconhecido"])
-            author = ", ".join(authors)
-            
-            book = Book(google_id=google_id, title=title, author=author)
-            db.session.add(book)
-            db.session.commit()
 
-        user_book = UserBook(user_id=user_id, book_id=book.id, rating=body.rating, comment=body.comment, status=body.status)
-        db.session.add(user_book)
-        db.session.commit()
-        return {"message": "Review criada com sucesso"}, 201
-        
-    user_book.rating = body.rating
-    user_book.comment = body.comment
-    user_book.status = body.status
-    db.session.commit()
-    return {"message": "Review atualizada com sucesso"}, 200
+@auth_bp.route("/login", methods=["POST"])
+def login():
+    """
+    Realiza login e retorna token JWT.
+    ---
+    tags:
+      - Autenticação
+    security: []
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - email
+            - password
+          properties:
+            email:
+              type: string
+              example: teste@example.com
+            password:
+              type: string
+              example: 123456
+    responses:
+      200:
+        description: Login bem-sucedido com token JWT
+      401:
+        description: Credenciais inválidas
+    """
+    data = request.get_json()
+    email = data.get("email")
+    password = str(data.get("password"))
 
+    if not email or not password:
+        return {"message": "Email e senha são obrigatórios"}, 400
 
-@book_bp.delete("/{google_id}")
-@jwt_required()
-def delete_user_book(path: PathGoogleID):
-    """Deleta a review de um livro para o utilizador."""
-    # A sua lógica de negócio aqui não precisa de alterações.
-    google_id = path.google_id
-    user_id = int(get_jwt_identity())
-    user_book = UserBook.query.join(Book).filter(Book.google_id == google_id, UserBook.user_id == user_id).first()
-    if not user_book:
-        return {"message": "Review não encontrada"}, 404
-        
-    db.session.delete(user_book)
-    db.session.commit()
-    return {"message": "Review removida com sucesso"}, 200
+    user = User.query.filter_by(email=email).first()
+    if not user or not user.check_password(password):
+        return {"message": "Email ou senha inválidos"}, 401
 
-
-@book_bp.patch("/{google_id}/status")
-@jwt_required()
-def update_book_status(path: PathGoogleID, body: StatusInput):
-    """Atualiza apenas o status de um livro (lido/lendo)."""
-    # A sua lógica de negócio aqui não precisa de alterações.
-    google_id = path.google_id
-    if body.status not in ["lido", "lendo"]:
-        return {"message": "Status inválido"}, 400
-        
-    user_id = int(get_jwt_identity())
-    user_book = UserBook.query.join(Book).filter(Book.google_id == google_id, UserBook.user_id == user_id).first()
-    if not user_book:
-        return {"message": "Review não encontrada"}, 404
-        
-    user_book.status = body.status
-    db.session.commit()
-    return {"message": f"Status atualizado para {body.status}"}, 200
+    access_token = create_access_token(identity=str(user.id))
+    return {"access_token": access_token}, 200

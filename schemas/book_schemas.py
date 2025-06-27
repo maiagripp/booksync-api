@@ -1,15 +1,9 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 class ReviewInput(BaseModel):
     rating: int
     comment: str
-    status: str = "lendo"
+    status: str
 
 class StatusInput(BaseModel):
     status: str
-    
-class SearchQuery(BaseModel):
-    query: str
-    
-class PathGoogleID(BaseModel):
-    google_id: str = Field(..., description="ID do livro no Google Books")

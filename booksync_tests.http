@@ -1,70 +1,61 @@
-### REGISTRO DE USUÁRIO
-POST http://localhost:5000/api/register
+@base_url = http://localhost:5000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc1MDk4MTk1NSwianRpIjoiZmY1YjM5NTgtMmVlNC00ZWJmLTg4NGEtMzgyMjU3YzA2NDY3IiwidHlwZSI6ImFjY2VzcyIsInN1YiI6IjQiLCJuYmYiOjE3NTA5ODE5NTUsImNzcmYiOiIxMjZiN2VkMy0xMDRhLTQzZWQtYjBhZi1jZTQzZjBkM2QxNDQiLCJleHAiOjE3NTA5ODI4NTV9.QzB5U9F-cV34XFY8VN-t-pHnGfdKHMoNurkZtN8fyLE
+
+### REGISTRAR USUÁRIO
+POST {{base_url}}/api/register
 Content-Type: application/json
 
 {
-  "email": "claudia@example.com",
+  "email": "claudia@email.com",
   "password": "123456"
 }
 
-###
-
-### LOGIN
-POST http://localhost:5000/api/login
+### LOGIN E COPIE O TOKEN
+POST {{base_url}}/api/login
 Content-Type: application/json
 
 {
-  "email": "claudia@example.com",
+  "email": "teste@example.com",
   "password": "123456"
 }
 
-# Copie o access_token retornado e substitua na linha Authorization abaixo
-
-###
-
-### BUSCAR LIVROS NA API DO GOOGLE BOOKS
-GET http://localhost:5000/api/user/books/search?query=grandes+esperancas
-Authorization: Bearer {{JWT_TOKEN}}
-
-###
-
-### ADICIONAR LIVRO COM REVIEW
-POST http://localhost:5000/api/user/books/0CgREQAAQBAJ
+### BUSCA NO GOOGLE BOOKS
+GET {{base_url}}/api/user/books/search?query=grandes+esperancas
+Authorization: Bearer {{token}}
 Content-Type: application/json
-Authorization: Bearer {{JWT_TOKEN}}
+
+### ADICIONAR REVIEW
+# Substitua "omH0DwAAQBAJ" por outro google_id se quiser
+POST {{base_url}}/api/user/books/omH0DwAAQBAJ
+Authorization: Bearer {{token}}
+Content-Type: application/json
 
 {
   "rating": 5,
-  "comment": "Excelente leitura, recomendo muito!",
-  "status": "lendo"
+  "comment": "Um clássico!",
+  "status": "lido"
 }
 
-###
-
-### ATUALIZAR REVIEW DE UM LIVRO (PUT)
-PUT http://localhost:5000/api/user/books/0CgREQAAQBAJ
+### ATUALIZAR REVIEW
+PUT {{base_url}}/api/user/books/omH0DwAAQBAJ
+Authorization: Bearer {{token}}
 Content-Type: application/json
-Authorization: Bearer {{JWT_TOKEN}}
 
 {
   "rating": 4,
-  "comment": "Gostei muito, mas prefiro outros do Dickens",
-  "status": "lido"
+  "comment": "Na releitura, gostei ainda mais",
+  "status": "lendo"
 }
 
-###
+### DELETAR REVIEW
+DELETE {{base_url}}/api/user/books/omH0DwAAQBAJ
+Authorization: Bearer {{token}}
 
-### ATUALIZAR SOMENTE O STATUS (PATCH)
-PATCH http://localhost:5000/api/user/books/0CgREQAAQBAJ/status
+### ATUALIZAR STATUS DO LIVRO
+PATCH {{base_url}}/api/user/books/omH0DwAAQBAJ/status
+Authorization: Bearer {{token}}
 Content-Type: application/json
-Authorization: Bearer {{JWT_TOKEN}}
 
 {
   "status": "lido"
 }
-
-###
-
-### DELETAR UM LIVRO DO USUÁRIO
-DELETE http://localhost:5000/api/user/books/0CgREQAAQBAJ
-Authorization: Bearer {{JWT_TOKEN}}
