@@ -5,11 +5,12 @@ from database import db
 from models.book import Book
 from models.user_book import UserBook
 from services.google_books import get_book_by_id, search_google_books
+import requests
 
 book_bp = Blueprint("books", __name__, url_prefix="/api/user/books")
 
 
-@book_bp.route("/", methods=["GET"])
+@book_bp.route("", methods=["GET"])
 @jwt_required()
 def get_user_books():
     """
@@ -25,28 +26,34 @@ def get_user_books():
         content:
           application/json:
             schema:
-              type: array
-              items:
-                type: object
-                properties:
-                  google_id:
-                    type: string
-                    example: "aog0vgAACAAJ"
-                  title:
-                    type: string
-                    example: "A Amiga Genial"
-                  author:
-                    type: string
-                    example: "Elena Ferrante"
-                  rating:
-                    type: integer
-                    example: 5
-                  comment:
-                    type: string
-                    example: "Um livro maravilhoso!"
-                  status:
-                    type: string
-                    example: "lido"
+              type: object
+              properties:
+                books:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      google_id:
+                        type: string
+                        example: "aog0vgAACAAJ"
+                      title:
+                        type: string
+                        example: "A Amiga Genial"
+                      author:
+                        type: string
+                        example: "Elena Ferrante"
+                      image:
+                        type: string
+                        example: "https://books.google.com/thumbnail?id=abc123"
+                      rating:
+                        type: integer
+                        example: 5
+                      comment:
+                        type: string
+                        example: "Um livro maravilhoso!"
+                      status:
+                        type: string
+                        example: "lido"
     """
     user_id = int(get_jwt_identity())
     user_books = (
@@ -62,12 +69,13 @@ def get_user_books():
             "google_id": book.google_id,
             "title": book.title,
             "author": book.author,
+            "image": book.image,
             "rating": user_book.rating,
             "comment": user_book.comment,
             "status": user_book.status
         })
 
-    return jsonify(result), 200
+    return jsonify({"books": result}), 200
 
 
 @book_bp.route("/search", methods=["GET"])
@@ -103,88 +111,48 @@ def search_books():
     return jsonify(books)
 
 
-@book_bp.route("/<string:google_id>", methods=["POST"])
+@book_bp.route("/<google_id>", methods=["POST"])
 @jwt_required()
-def add_user_book(google_id):
-    """
-    Adiciona avaliação do usuário para um livro.
-    ---
-    tags:
-      - Livros
-    security:
-      - Bearer: []
-    parameters:
-      - name: google_id
-        in: path
-        type: string
-        required: true
-        description: ID do livro no Google Books
-      - in: body
-        name: body
-        required: true
-        schema:
-          type: object
-          required:
-            - rating
-            - comment
-            - status
-          properties:
-            rating:
-              type: integer
-              example: 5
-            comment:
-              type: string
-              example: Um clássico!
-            status:
-              type: string
-              enum: [lido, lendo]
-              example: lido
-    responses:
-      201:
-        description: Avaliação criada com sucesso
-      409:
-        description: Livro já avaliado
-      400:
-        description: Erro de validação
-      404:
-        description: Livro não encontrado
-    """
+def save_book(google_id):
     user_id = int(get_jwt_identity())
-    body = request.get_json()
-    try:
-        data = ReviewInput(**body)
-    except Exception as e:
-        return {"message": f"Erro de validação: {str(e)}"}, 400
+    data = request.get_json()
+    rating = data.get("rating")
+    comment = data.get("comment")
+    status = data.get("status")
 
-    if data.status not in ["lido", "lendo"]:
-        return {"message": "Status inválido"}, 400
+    # Busca detalhes do livro na API do Google
+    google_data = requests.get(f"https://www.googleapis.com/books/v1/volumes/{google_id}").json()
+    volume_info = google_data.get("volumeInfo", {})
+    title = volume_info.get("title", "Título desconhecido")
+    authors = volume_info.get("authors", [])
+    image_links = volume_info.get("imageLinks", {})
+    thumbnail = image_links.get("thumbnail")
 
+    # Verifica se o livro já existe
     book = Book.query.filter_by(google_id=google_id).first()
     if not book:
-        book_data = get_book_by_id(google_id)
-        if not book_data:
-            return {"message": "Livro não encontrado na Google Books API"}, 404
-        title = book_data["volumeInfo"].get("title", "Título desconhecido")
-        authors = book_data["volumeInfo"].get("authors", ["Autor desconhecido"])
-        author = ", ".join(authors)
-        book = Book(google_id=google_id, title=title, author=author)
+        book = Book(
+            google_id=google_id,
+            title=title,
+            author=", ".join(authors) if authors else "Autor desconhecido",
+            image=thumbnail
+        )
         db.session.add(book)
-        db.session.commit()
+        db.session.commit()  # para gerar ID
 
-    existing = UserBook.query.filter_by(user_id=user_id, book_id=book.id).first()
-    if existing:
-        return {"message": "Você já adicionou este livro. Use PUT para atualizar."}, 409
+    # Verifica se o usuário já avaliou
+    user_book = UserBook.query.filter_by(user_id=user_id, book_id=book.id).first()
+    if not user_book:
+        user_book = UserBook(user_id=user_id, book_id=book.id)
 
-    user_book = UserBook(
-        user_id=user_id,
-        book_id=book.id,
-        rating=data.rating,
-        comment=data.comment,
-        status=data.status
-    )
+    user_book.rating = rating
+    user_book.comment = comment
+    user_book.status = status
+
     db.session.add(user_book)
     db.session.commit()
-    return {"message": "Livro avaliado com sucesso"}, 201
+
+    return jsonify({"message": "Livro salvo com sucesso!"}), 200
 
 
 @book_bp.route("/<string:google_id>", methods=["PUT"])

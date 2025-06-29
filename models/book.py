@@ -5,3 +5,4 @@ class Book(db.Model):
     google_id = db.Column(db.String(100), unique=True)
     title = db.Column(db.String(200))
     author = db.Column(db.String(120))
+    image = db.Column(db.String(512))
