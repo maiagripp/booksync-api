@@ -9,6 +9,67 @@ from services.google_books import get_book_by_id, search_google_books
 book_bp = Blueprint("books", __name__, url_prefix="/api/user/books")
 
 
+@book_bp.route("/", methods=["GET"])
+@jwt_required()
+def get_user_books():
+    """
+    Retorna todos os livros avaliados pelo usuário autenticado.
+    ---
+    tags:
+      - Livros
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Lista de livros avaliados
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  google_id:
+                    type: string
+                    example: "aog0vgAACAAJ"
+                  title:
+                    type: string
+                    example: "A Amiga Genial"
+                  author:
+                    type: string
+                    example: "Elena Ferrante"
+                  rating:
+                    type: integer
+                    example: 5
+                  comment:
+                    type: string
+                    example: "Um livro maravilhoso!"
+                  status:
+                    type: string
+                    example: "lido"
+    """
+    user_id = int(get_jwt_identity())
+    user_books = (
+        db.session.query(UserBook, Book)
+        .join(Book, UserBook.book_id == Book.id)
+        .filter(UserBook.user_id == user_id)
+        .all()
+    )
+
+    result = []
+    for user_book, book in user_books:
+        result.append({
+            "google_id": book.google_id,
+            "title": book.title,
+            "author": book.author,
+            "rating": user_book.rating,
+            "comment": user_book.comment,
+            "status": user_book.status
+        })
+
+    return jsonify(result), 200
+
+
 @book_bp.route("/search", methods=["GET"])
 def search_books():
     """
@@ -70,7 +131,6 @@ def add_user_book(google_id):
           properties:
             rating:
               type: integer
-              format: int32
               example: 5
             comment:
               type: string
@@ -143,27 +203,27 @@ def update_or_create_user_book(google_id):
         type: string
         required: true
         description: ID do livro no Google Books
-      - in: body
-        name: body
-        required: true
-        schema:
-          type: object
-          required:
-            - rating
-            - comment
-            - status
-          properties:
-            rating:
-              type: integer
-              format: int32
-              example: 5
-            comment:
-              type: string
-              example: Um clássico!
-            status:
-              type: string
-              enum: [lido, lendo]
-              example: lido
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - rating
+              - comment
+              - status
+            properties:
+              rating:
+                type: integer
+                example: 4
+              comment:
+                type: string
+                example: Na releitura, gostei ainda mais
+              status:
+                type: string
+                enum: [lido, lendo]
+                example: lendo
     responses:
       200:
         description: Avaliação atualizada com sucesso
@@ -261,18 +321,19 @@ def update_book_status(google_id):
         type: string
         required: true
         description: ID do livro no Google Books
-      - in: body
-        name: body
-        required: true
-        schema:
-          type: object
-          required:
-            - status
-          properties:
-            status:
-              type: string
-              enum: [lido, lendo]
-              example: lido
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - status
+            properties:
+              status:
+                type: string
+                enum: [lido, lendo]
+                example: lido
     responses:
       200:
         description: Status atualizado com sucesso
