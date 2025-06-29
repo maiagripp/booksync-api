@@ -11,6 +11,7 @@ book_bp = Blueprint("books", __name__, url_prefix="/api/user/books")
 
 
 @book_bp.route("", methods=["GET"])
+@book_bp.route("/", methods=["GET"])
 @jwt_required()
 def get_user_books():
     """
