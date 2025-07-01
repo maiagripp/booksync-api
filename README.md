@@ -1,98 +1,96 @@
-# BookSync - Backend API
+# 📚 BookSync - Backend API
 
-API REST para o projeto BookSync, um sistema web para organização, avaliação e comentário de livros lidos e em leitura.  
-O backend é feito em Python com Flask, Flask-SQLAlchemy para o ORM, e integração com a Google Books API para pesquisa de livros.
-
----
-
-## Funcionalidades
-
-- Cadastro e autenticação de usuários com JWT
-- Pesquisa de livros via Google Books API
-- Adição de livros favoritos/avaliados por usuário
-- Avaliação e comentário sobre livros (nota 1 a 5 e texto)
-- Organização básica dos livros do usuário
+API REST do projeto **BookSync**, um sistema para organização, avaliação e acompanhamento de livros lidos ou em leitura. Desenvolvido com Flask, JWT e integração com a Google Books API.
 
 ---
 
-## Tecnologias usadas
+## ✅ Funcionalidades
+
+- 📌 Cadastro e autenticação de usuários com JWT
+- 🔐 Proteção de rotas com token Bearer
+- 🔍 Pesquisa de livros na Google Books API
+- 💾 Salvamento de livros na conta do usuário
+- 🌟 Avaliação de livros com:
+  - Nota (1 a 5 estrelas)
+  - Comentário
+  - Status: "lido" ou "lendo"
+- ✏️ Edição e exclusão de avaliações
+- 🔄 Alteração de status de leitura
+- 🧾 Documentação Swagger interativa (`/apidocs`)
+
+---
+
+## ⚙️ Tecnologias utilizadas
 
 - Python 3.11+
 - Flask
 - Flask-SQLAlchemy
 - Flask-JWT-Extended
 - Flask-CORS
-- Requests (para integração com Google Books)
-- SQLite (banco de dados local)
+- Pydantic (validação de entrada)
+- Requests (Google Books API)
+- SQLite (banco local)
 
 ---
 
-## Como rodar localmente
+## 🚀 Como rodar localmente
 
 ### Pré-requisitos
 
-- Python 3.11 ou superior instalado
-- Banco SQLite (já configurado no projeto)
+- [Python 3.11+](https://www.python.org/downloads/)
+- [Git](https://git-scm.com/downloads)
+- (Opcional) Ambiente virtual Python
 
 ### Passos
 
-1. Clone o repositório:
-
 ```bash
+# Clone o repositório
 git clone https://github.com/maiagripp/booksync-api.git
 cd booksync-api
-```
 
-2. Instale as dependências:
+# Crie e ative o ambiente virtual
+python -m venv venv
+source venv/bin/activate  #macOS/Linux
+venv\Scripts\activate #Windows 
 
-```bash
-python -m venv .venv
-source venv/bin/activate  # Linux/macOS
-venv\Scripts\activate   # Windows
+# Instale as dependências
 pip install -r requirements.txt
-```
 
-3. Configure variáveis de ambiente
-
-As configs estão em `config.py`.
-
-4. Rode a aplicação:
-
-```bash
+# Rode o servidor Flask
 flask --app app run
+🔗 A API estará disponível em http://localhost:5000
+📑 A documentação Swagger pode ser acessada em http://localhost:5000/apidocs/
 ```
 
-O backend estará disponível em `http://localhost:5000`.
+### 📁 Estrutura do projeto
+```plaintext
+📦 booksync-api
+ ┣ 📜 app.py              # Ponto de entrada do Flask
+ ┣ 📜 config.py           # Configurações gerais (JWT, DB, CORS)
+ ┣ 📜 database.py         # Instância e inicialização do SQLAlchemy
+ ┣ 📁 models/             # Modelos ORM: User, Book, UserBook
+ ┣ 📁 routes/             # Blueprints organizadas (auth, books)
+ ┣ 📁 schemas/            # Schemas de validação com Pydantic
+ ┣ 📁 services/           # Integração com Google Books e lógica extra
+ ┗ 📜 requirements.txt    # Dependências do projeto
+ ```
 
-A documentação Swagger estará disponível em: `http://localhost:5000/apidocs/`
+### 🔐 Segurança
+Tokens JWT com expiração
 
----
+Logout automático no frontend quando o token expira
 
-## Estrutura do projeto
+Proteção das rotas com @jwt_required()
 
-```
-/app.py               # arquivo principal do Flask
-/config.py            # configurações da aplicação
-/database.py          # inicialização do banco com SQLAlchemy
-/models/              # modelos de dados (User, Book, UserBook, etc)
-/routes/              # rotas agrupadas em Blueprints (auth, book, etc)
-/schemas/             # esquemas de validação com Pydantic
-/services/            # integração com Google Books e lógica de negócio
-/requirements.txt     # dependências do projeto
-```
+### 🔄 Integração com o Frontend
+O frontend (SPA com HTML/CSS/JS) está em outro repositório: [Front](https://github.com/maiagripp/booksync-front)
 
----
 
-## Observações
+### 📂 booksync-front
+Certifique-se de que ambos os projetos estejam sendo executados com o backend escutando em http://127.0.0.1:5000.
 
-- Banco usado: SQLite para simplicidade no MVP  
-- Autenticação via JWT para segurança nas rotas protegidas  
-- Frontend separado, SPA em HTML/CSS/JS puro (em outro repositório/pasta)  
-
----
-
-## Contato
-
+### 📧 Contato
 Claudia Maia — [Email-me](mailto:maiaandradec@gmail.com)
 
 Projeto desenvolvido como MVP para pós-graduação em Engenharia de Software - Sprint Desenvolvimento FullStack Básico na PUC-Rio.
+
