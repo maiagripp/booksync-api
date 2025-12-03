@@ -1,96 +1,120 @@
 # 📚 BookSync - Backend API
 
-API REST do projeto **BookSync**, um sistema para organização, avaliação e acompanhamento de livros lidos ou em leitura. Desenvolvido com Flask, JWT e integração com a Google Books API.
+API REST do projeto **BookSync**, desenvolvida para gerenciar usuários, autenticação e a persistência de livros e avaliações. Atua como um **API Gateway** para consumo seguro da Google Books API.
 
 ---
 
-## ✅ Funcionalidades
+## 🏛️ Arquitetura do Projeto
 
-- 📌 Cadastro e autenticação de usuários com JWT
-- 🔐 Proteção de rotas com token Bearer
-- 🔍 Pesquisa de livros na Google Books API
-- 💾 Salvamento de livros na conta do usuário
-- 🌟 Avaliação de livros com:
-  - Nota (1 a 5 estrelas)
-  - Comentário
-  - Status: "lido" ou "lendo"
-- ✏️ Edição e exclusão de avaliações
-- 🔄 Alteração de status de leitura
-- 🧾 Documentação Swagger interativa (`/apidocs`)
+O projeto segue a arquitetura de **Cenário 1.1 (Integração Backend)**. A API atua como intermediária, recebendo requisições do Frontend, consultando o banco de dados local ou a API externa, e tratando os dados antes da resposta.
+
+![Arquitetura do Projeto BookSync](/assets/architeture.png)
+
+*(O consumo da API externa é encapsulado no Backend, garantindo que chaves de API e tratamento de dados fiquem isolados do cliente).*
 
 ---
 
-## ⚙️ Tecnologias utilizadas
+## 🌐 API Externa Utilizada
 
-- Python 3.11+
-- Flask
-- Flask-SQLAlchemy
-- Flask-JWT-Extended
-- Flask-CORS
-- Pydantic (validação de entrada)
-- Requests (Google Books API)
-- SQLite (banco local)
+O sistema consome dados da **Google Books API** para buscar informações de livros (título, autor, capa).
+
+- **Serviço:** Google Books API v1
+- **Status:** Pública e Gratuita.
+- **Integração:** Feita via biblioteca `requests` no Python.
+- **Tratamento:** O Backend recebe o JSON bruto do Google, filtra apenas os campos necessários (título, autores, thumbnail, ID) e entrega um JSON limpo para o Frontend.
+- **Rotas Internas que chamam a externa:**
+  - `GET /user/books/search?query={termo}`
 
 ---
 
-## 🚀 Como rodar localmente
+## ⚙️ Tecnologias Utilizadas
+
+- **Linguagem:** Python 3.11+
+- **Framework:** Flask
+- **Banco de Dados:** SQLite (via Flask-SQLAlchemy)
+- **Autenticação:** JWT (Flask-JWT-Extended)
+- **Documentação:** Swagger (Flasgger)
+- **Containerização:** Docker
+
+---
+
+## ✅ Funcionalidades (Endpoints)
+
+A API fornece 4 métodos HTTP principais:
+
+- **POST** (`/register`, `/login`, `/user/books/{id}`): Cadastro, Autenticação e Salvamento de livros.
+- **GET** (`/user/books`, `/user/books/search`): Listagem da estante e busca externa.
+- **PUT** (`/user/books/{id}`): Edição de nota, comentário e status.
+- **DELETE** (`/user/books/{id}`): Remoção de livro da estante.
+
+> A documentação interativa completa (Swagger) está disponível em `/apidocs` quando a aplicação está rodando.
+
+---
+
+## 🚀 Como Rodar o Projeto
 
 ### Pré-requisitos
+- [Docker](https://www.docker.com/) OU Python 3.11+ instalado.
 
-- [Python 3.11+](https://www.python.org/downloads/)
-- [Git](https://git-scm.com/downloads)
-- (Opcional) Ambiente virtual Python
+### Opção 1: Rodar com Docker 🐳
 
-### Passos
+Para rodar a API isoladamente em um container:
 
-```bash
-# Clone o repositório
+1. Construa a imagem:
+```Bash
+docker build -t booksync-api .
+```
+Execute o container:
+```Bash
+docker run -p 5000:5000 booksync-api
+```
+A API estará disponível em: http://localhost:5000
+
+Nota: Para rodar o sistema completo (Front + Back), utilize o docker-compose.yml presente no repositório do Frontend.
+
+### Opção 2: Rodar Localmente (Python)
+Clone o repositório:
+```Bash
 git clone https://github.com/maiagripp/booksync-api.git
 cd booksync-api
-
-# Crie e ative o ambiente virtual
-python -m venv venv
-source venv/bin/activate  #macOS/Linux
-venv\Scripts\activate #Windows 
-
-# Instale as dependências
-pip install -r requirements.txt
-
-# Rode o servidor Flask
-flask --app app run
-🔗 A API estará disponível em http://localhost:5000
-📑 A documentação Swagger pode ser acessada em http://localhost:5000/apidocs/
 ```
 
-### 📁 Estrutura do projeto
-```plaintext
+Crie e ative o ambiente virtual:
+
+```Bash
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# Linux/Mac:
+source venv/bin/activate
+```
+
+Instale as dependências:
+```Bash
+pip install -r requirements.txt
+``` 
+
+Execute a aplicação:
+
+```Bash
+flask --app app run
+```
+
+📁 Estrutura de Arquivos
+```Plaintext
 📦 booksync-api
- ┣ 📜 app.py              # Ponto de entrada do Flask
- ┣ 📜 config.py           # Configurações gerais (JWT, DB, CORS)
- ┣ 📜 database.py         # Instância e inicialização do SQLAlchemy
- ┣ 📁 models/             # Modelos ORM: User, Book, UserBook
- ┣ 📁 routes/             # Blueprints organizadas (auth, books)
- ┣ 📁 schemas/            # Schemas de validação com Pydantic
- ┣ 📁 services/           # Integração com Google Books e lógica extra
- ┗ 📜 requirements.txt    # Dependências do projeto
- ```
+ ┣ 📂 assets/             # Imagens da documentação
+ ┃ ┗ 📜 architecture.png  # Diagrama da arquitetura
+ ┣ 📁 models/             # Modelos do Banco de Dados (User, UserBook)
+ ┣ 📁 routes/             # Rotas da API (Auth, Books)
+ ┣ 📁 services/           # Lógica de integração com Google Books
+ ┣ 📜 app.py              # Ponto de entrada da aplicação
+ ┣ 📜 config.py           # Configurações de ambiente
+ ┣ 📜 Dockerfile          # Configuração da imagem Docker
+ ┗ 📜 requirements.txt    # Dependências do Python
+```
 
-### 🔐 Segurança
-Tokens JWT com expiração
-
-Logout automático no frontend quando o token expira
-
-Proteção das rotas com @jwt_required()
-
-### 🔄 Integração com o Frontend
-O frontend (SPA com HTML/CSS/JS) está em outro repositório: [Front](https://github.com/maiagripp/booksync-front)
-
-
-### 📂 booksync-front
-Certifique-se de que ambos os projetos estejam sendo executados com o backend escutando em http://127.0.0.1:5000.
-
-### 📧 Contato
-Claudia Maia — [Email-me](mailto:maiaandradec@gmail.com)
+📧 Contato
+Claudia Maia — Email-me
 
 Projeto desenvolvido como MVP para pós-graduação em Engenharia de Software - Sprint Desenvolvimento FullStack Básico na PUC-Rio.
-
