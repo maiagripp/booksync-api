@@ -8,7 +8,7 @@ API REST do projeto **BookSync**, desenvolvida para gerenciar usuários, autenti
 
 O projeto segue a arquitetura de **Cenário 1.1 (Integração Backend)**. A API atua como intermediária, recebendo requisições do Frontend, consultando o banco de dados local ou a API externa, e tratando os dados antes da resposta.
 
-![Arquitetura do Projeto BookSync](/assets/architeture.png)
+![Arquitetura do Projeto BookSync](/assets/arquitetura_booksync.png)
 
 *(O consumo da API externa é encapsulado no Backend, garantindo que chaves de API e tratamento de dados fiquem isolados do cliente).*
 
